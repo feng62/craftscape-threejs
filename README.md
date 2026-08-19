@@ -8,6 +8,8 @@
 [![pnpm](https://img.shields.io/badge/pnpm-9.x-F69220.svg)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-AGPLv3-green.svg)](LICENSE)
 
+![Craftscape Three.js Preview](./public/preview.png)
+
 ---
 
 ## 📖 项目简介
