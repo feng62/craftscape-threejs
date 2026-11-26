@@ -1,83 +1,65 @@
 import * as THREE from 'three';
 
 export class GridGeometry extends THREE.BufferGeometry {
-  constructor({ xsize = 512, ysize = 512, width = 1, height = 1, cell_width = 4, cell_height = 4 } = {}) {
+  constructor({ xsize = 512, ysize = 512, width = 1, height = 1 } = {}) {
     super();
 
-    const position = [];
-    const uv = [];
-    const barycentric = [];
-    const cell_uv = [];
+    const cols = xsize + 1;
+    const rows = ysize + 1;
+    const vertexCount = cols * rows;
 
-    const cell_count_x = xsize / cell_width;
-    const cell_count_y = ysize / cell_height;
+    const positions = new Float32Array(vertexCount * 3);
+    const uvs = new Float32Array(vertexCount * 2);
 
-    for (let x = 0; x < xsize; x++) {
-      const left = x / xsize;
-      const right = (x + 1) / xsize;
-      const pleft = left * width - width / 2;
-      const pright = right * width - width / 2;
+    const halfW = width * 0.5;
+    const halfH = height * 0.5;
 
-      const cell_x = Math.floor(x / cell_width) / cell_count_x;
-      const cell_l = (x % cell_width) / cell_width;
-      const cell_r = ((x % cell_width) + 1) / cell_width;
+    let vPtr = 0;
+    let uvPtr = 0;
 
-      for (let y = 0; y < ysize; y++) {
-        const bottom = y / ysize;
-        const top = (y + 1) / ysize;
-        const pbottom = bottom * height - height / 2;
-        const ptop = top * height - height / 2;
+    for (let y = 0; y <= ysize; y++) {
+      const v = y / ysize;
+      const pz = v * height - halfH;
 
-        const cell_y = Math.floor(y / cell_height) / cell_count_y;
-        const cell_b = (y % cell_height) / cell_height;
-        const cell_t = ((y % cell_height) + 1) / cell_height;
+      for (let x = 0; x <= xsize; x++) {
+        const u = x / xsize;
+        const px = u * width - halfW;
 
-        // Position in XZ plane
-        position.push(
-          pleft, 0, ptop,
-          pleft, 0, pbottom,
-          pright, 0, ptop,
+        positions[vPtr++] = px;
+        positions[vPtr++] = 0;
+        positions[vPtr++] = pz;
 
-          pleft, 0, pbottom,
-          pright, 0, pbottom,
-          pright, 0, ptop
-        );
-
-        uv.push(
-          left, top,
-          left, bottom,
-          right, top,
-
-          left, bottom,
-          right, bottom,
-          right, top
-        );
-
-        cell_uv.push(
-          cell_x, cell_y, cell_l, cell_t,
-          cell_x, cell_y, cell_l, cell_b,
-          cell_x, cell_y, cell_r, cell_t,
-
-          cell_x, cell_y, cell_l, cell_b,
-          cell_x, cell_y, cell_r, cell_b,
-          cell_x, cell_y, cell_r, cell_t
-        );
-
-        barycentric.push(
-          1, 0, 0,
-          0, 1, 0,
-          0, 0, 1,
-
-          1, 0, 0,
-          0, 1, 0,
-          0, 0, 1
-        );
+        uvs[uvPtr++] = u;
+        uvs[uvPtr++] = v;
       }
     }
 
-    this.setAttribute('position', new THREE.Float32BufferAttribute(position, 3));
-    this.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    this.setAttribute('barycentric', new THREE.Float32BufferAttribute(barycentric, 3));
-    this.setAttribute('cell_uv', new THREE.Float32BufferAttribute(cell_uv, 4));
+    const indexCount = xsize * ysize * 6;
+    const indices = new Uint32Array(indexCount);
+    let iPtr = 0;
+
+    for (let y = 0; y < ysize; y++) {
+      const row0 = y * cols;
+      const row1 = (y + 1) * cols;
+
+      for (let x = 0; x < xsize; x++) {
+        const tl = row1 + x;
+        const tr = row1 + x + 1;
+        const bl = row0 + x;
+        const br = row0 + x + 1;
+
+        indices[iPtr++] = tl;
+        indices[iPtr++] = bl;
+        indices[iPtr++] = tr;
+
+        indices[iPtr++] = bl;
+        indices[iPtr++] = br;
+        indices[iPtr++] = tr;
+      }
+    }
+
+    this.setIndex(new THREE.BufferAttribute(indices, 1));
+    this.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    this.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
   }
 }

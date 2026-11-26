@@ -11,6 +11,8 @@ const normalVertexShader = `
 const normalFragmentShader = `
   uniform sampler2D heights;
   uniform vec2 viewport;
+  uniform float worldSize;
+  uniform float verticalScale;
 
   vec4 get(float x, float y) {
     return texture2D(heights, (gl_FragCoord.xy + vec2(x, y)) / viewport);
@@ -22,7 +24,8 @@ const normalFragmentShader = `
     float left  = get(-1.0,  0.0).x;
     float right = get( 1.0,  0.0).x;
 
-    vec3 normal = normalize(vec3((left - right), 0.005, (bot - top)));
+    float dx = 2.0 * max(0.1, worldSize) / max(viewport.x, viewport.y);
+    vec3 normal = normalize(vec3((left - right) * verticalScale, dx * 1.25, (bot - top) * verticalScale));
     gl_FragColor = vec4(normal, 1.0);
   }
 `;
@@ -33,7 +36,9 @@ export function createNormalMaterial(width = 512, height = 512) {
     fragmentShader: normalFragmentShader,
     uniforms: {
       heights: { value: null },
-      viewport: { value: new THREE.Vector2(width, height) }
+      viewport: { value: new THREE.Vector2(width, height) },
+      worldSize: { value: 1.0 },
+      verticalScale: { value: 1.0 }
     },
     depthTest: false,
     depthWrite: false,
@@ -52,6 +57,8 @@ const occlusionVertexShader = `
 const occlusionFragmentShader = `
   uniform sampler2D heights, normals;
   uniform vec2 viewport;
+  uniform float worldSize;
+  uniform float verticalScale;
 
   vec4 get_height(float x, float y) {
     return texture2D(heights, (gl_FragCoord.xy + vec2(x, y)) / viewport);
@@ -66,14 +73,15 @@ const occlusionFragmentShader = `
 
     float total_diff = 0.0;
     float samples = 0.0;
+    float ws = max(0.1, worldSize);
 
     for (float x = -3.0; x <= 3.0; x += 1.0) {
       for (float y = -3.0; y <= 3.0; y += 1.0) {
         if (x != 0.0 || y != 0.0) {
           float sample_h = get_height(x, y).x;
-          vec3 diff_vec = vec3(x / viewport.x, sample_h - h, y / viewport.y);
+          vec3 diff_vec = vec3(x * ws / viewport.x, (sample_h - h) * verticalScale, y * ws / viewport.y);
           float d = length(diff_vec);
-          float ao = max(0.0, dot(n, diff_vec / d)) / (1.0 + d * 50.0);
+          float ao = max(0.0, dot(n, diff_vec / max(1e-5, d))) / (1.0 + (d / ws) * 50.0);
           total_diff += ao;
           samples += 1.0;
         }
@@ -91,7 +99,9 @@ export function createOcclusionMaterial(width = 512, height = 512) {
     uniforms: {
       heights: { value: null },
       normals: { value: null },
-      viewport: { value: new THREE.Vector2(width, height) }
+      viewport: { value: new THREE.Vector2(width, height) },
+      worldSize: { value: 1.0 },
+      verticalScale: { value: 1.0 }
     },
     depthTest: false,
     depthWrite: false,

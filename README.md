@@ -1,9 +1,11 @@
 # Craftscape Three.js 🌊⛰️
 
-> 基于 **Three.js (r185+)** 与 **WebGL GPGPU 浅水物理学** 的现代三维地形雕刻与水文模拟系统。
-> 本项目重构移植自 Florian Boesch 的经典 WebGL 引擎 [pyalot/craftscape](https://github.com/pyalot/craftscape)。
+English | [简体中文](./README.zh-CN.md)
 
-[![Three.js](https://img.shields.io/badge/Three.js-r185+-blue.svg)](https://threejs.org/)
+> A modern, high-customizability 3D terrain sculpting, geotechnical erosion, and flash-flood hydrology sandbox built on **Three.js** and **WebGL GPGPU shallow-water physics**.
+> Originally refactored and expanded from Florian Boesch's WebGL project [pyalot/craftscape](https://github.com/pyalot/craftscape).
+
+[![Three.js](https://img.shields.io/badge/Three.js-0.170+-blue.svg)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.x-646CFF.svg)](https://vitejs.dev/)
 [![pnpm](https://img.shields.io/badge/pnpm-9.x-F69220.svg)](https://pnpm.io/)
 [![License](https://img.shields.io/badge/License-AGPLv3-green.svg)](LICENSE)
@@ -12,121 +14,135 @@
 
 ---
 
-## 📖 项目简介
+## 📖 Overview
 
-**Craftscape Three.js** 是一个部署于 Web 端的实时三维地形交互雕刻与物理水动力学演变引擎。通过将 GPU Framebuffer Object (FBO) 双缓冲区技术与三维光线步进（Raymarching）相结合，系统能够在浏览器中以高帧率实时模拟山体建造、土壤漫延、重力侵蚀、降雨积水、水面蒸发以及复杂的水流奔涌现象。
-
----
-
-## ✨ 核心特性
-
-### 1. 🌊 GPU 浅水流体力学模拟 (GPGPU Hydrodynamics)
-* **Saint-Venant 浅水方程解算**：基于浅水连续性方程在 GPU 中解算水面高度与二维动量矢量 $\mathbf{w}_{yz}$。
-* **物理水面平衡 (Height Difference Exchange)**：沿 X/Y 轴双向解算高差与重力交换，实现精准的水面平衡。
-* **128×128 矢量流速场 (Flow Velocity Drift)**：通过 128×128 专用 FBO 离屏解算全地图矢量流速 $\text{vel} = \frac{\mathbf{w}_{yz} \cdot 0.001}{w_x \cdot 0.1 + 0.001}$。**狭窄峡谷中水流迅猛疾驰，宽阔湖泊中水面平缓沉静**。
-* **8 方向邻域平滑法线**：使用 8 方向邻域叉积均值生成连续柔和的水面折射法线，无锯齿过渡。
-
-### 2. ⚡ 高真实度水体与白浪渲染 (Foam & Fluid Rendering)
-* **流速驱动白浪与水花 (Foam & Froth)**：水流在坡度大或狭窄渠道处快速奔流时，基于流速因子 $\text{speed\_factor}$ 自动翻滚纯白浪花与水泡。
-* **物理吸光与水色渐变**：实现从浅水区亮青色（Turbulent Blue）到深水区暗蓝色（Deep Ocean Blue）的自然指数吸光渐变（$Kr$ 因子）。
-* **高光与球谐光照 (SH Lighting & Specular)**：结合太阳高光反射与球谐光照（Spherical Harmonics），呈现明亮动感的水面。
-
-### 3. 🎯 高海拔 3D 拾取与精确定位 (3D Raymarching Elevation Pick)
-* **GPU 3D 光线步进求交 (Raymarching + Binary Search)**：使用 45 步 GLSL Raymarching 配合 5 步二分法搜索，解决倾斜视角下倾斜山体（$y > 0$）与鼠标射线的精确 3D 表面交点。
-* **选框与雕刻 100% 重合**：消除传统平地 $y = 0$ 假设带来的位移错位，绿色笔刷光圈与实际雕刻变形成型点绝对同步。
-
-### 4. 🌧️ 降雨与天气系统 (Weather & Rain System)
-* **3D 动态雨滴粒子系统**：在场景空中构建 10,000 个 3D 动态雨滴粒子（`RainParticles`），随雨量实时调节渲染密度与下落速度。
-* **降雨强度 (Rainfall Intensity)**：GUI 支持 `0 ~ 100` 雨量连续调节，大雨时全地形洼地快速积水汇聚成河。
-* **降雨与落速控制**：可随时开启/关闭降雨或调整雨滴下落速度。
-
-### 5. 🛠️ 水文与泥沙物理调控 (Hydrology & Erosion Physics)
-* **水流速度 / 倍率 (`0.1 ~ 5.0x`)**：同步缩放 GPU 浅水物理动量传递加速度与水面细观波纹漂移速率，轻松切换缓流与极速奔流。
-* **蒸发量 / 速率 (`0.0 ~ 10.0`)**：支持开启/关闭蒸发，并调节太阳暴晒干涸速率。
-* **侵蚀量 / 强度 (`0.0 ~ 10.0`)**：支持开启/关闭泥沙侵蚀，调高后急流可切蚀山体形成深谷。
-
-### 6. 🎨 雕刻工具与双风格网格 (Sculpting & Dual Mesh Style)
-* **雕刻工具开关 (Enable Sculpting)**：提供 GUI 总开关；开启时按住**鼠标左键拖拽**或**空格键**即可直接增减岩石、土壤或水体。
-* **笔刷光圈隐显**：关闭雕刻工具时，自动隐藏绿色笔刷光圈 overlay；拖拽雕刻时自动暂停 OrbitControls 视角旋转。
-* **双视觉网格风格**：
-  * **HexGrid (六边形柱体)**：蜂窝状六角柱体渲染风格。
-  * **SmoothGrid (平滑地形)**：连续平滑连续三维地形。
+**Craftscape Three.js** is a real-time, browser-based 3D watershed sandbox for interactive terrain generation, differential soil erosion, and flash-flood simulation. Powered by multi-pass WebGL floating-point FBO pipelines (`TerrainSim`, `WaterSim`) and a Virtual Pipe shallow-water solver, it simulates everything from gentle hillslope runoff to multi-branch muddy flash floods, gully incision, wet loess subsidence, and interactive terrain sculpting at up to 60 FPS.
 
 ---
 
-## 🛠️ 技术栈
+## ✨ Key Features & Capabilities
 
-* **核心渲染**: [Three.js (r185+)](https://threejs.org/)
-* **构建工具**: [Vite 6.x](https://vitejs.dev/)
-* **包管理器**: [pnpm](https://pnpm.io/)
-* **着色器语言**: GLSL (WebGL 2.0 / WebGL 1.0 + `OES_texture_float`)
-* **控制面板**: [lil-gui](https://lil-gui.georgealways.com/)
+### 1. 🗺️ Multi-Scale Watershed Area & Decoupled GPU Resolution (`1×1` – `16×16 km`)
+* **Flexible Map Sizes (`1 – 256 km²`)**: Instant presets for `1×1`, `2×2`, `4×4`, `8×8`, and `16×16 km`, plus a continuous integer edge-length slider (`1–16 km`). Automatically scales vertical relief (`size^0.48`), camera framing, rain coverage, atmospheric distance, and watershed branch frequency.
+* **Landform Scale Multiplier (`0.50 – 3.00`)**: Independently control whether larger maps generate expansive multi-ridge mountain watersheds or widen a single canyon system.
+* **Decoupled Simulation Resolution (`512 / 1024 / 2048`)**: Switch between `512` (smooth), `1024` (HD, auto-selected for `>= 4×4`), and `2048` (Ultra HD) with clean GPU resource disposal and zero memory leaks.
+* **Performance-Optimized Geometry**: Uses a `Uint32Array` indexed `GridGeometry` (6× fewer vertices than non-indexed triangle lists) paired with a lightweight `256×256` downsampled CPU elevation cache for fast, accurate 3D raycasting and marker placement.
+
+### 2. ⛰️ Realistic Aerial-DEM Procedural Landforms
+* **6 Built-In Landform Templates**:
+  * **Wide Hill Canyon (`canyon`)**: Rounded hillsides flanking a natural river valley with steep cohesive banks.
+  * **Dendritic Loess Gullies (`dendritic`)**: Converging multi-branch tributary gullies suited for watershed runoff & subsidence.
+  * **Meandering Floodplain (`meander`)**: S-curved wide river valley and terraces with distinct valley-bottom silt and hillside soil.
+  * **Piedmont Alluvial Fan (`alluvial`)**: Mountain foothill gorges opening onto broad braided alluvial fan plains.
+  * **Stepped Detention Basin (`dammed`)**: Upper catchment draining into a natural dammed basin before spilling downslope.
+  * **Rolling Hill Ranges (`ridges`)**: Continuous satellite-DEM-style low-to-mid mountain ranges with natural drainage tilt.
+* **Spike-Free Smooth Relief**: Replaces sharp needle ridges with smooth hyperbolic curves (`softAbs`), gentle multi-octave fBm hills, and two 3×3 Gaussian weathering passes (`createSmoothTerrainMaterial`).
+* **Full Parameter Tuning & Pre-Erosion**: Customize height scale, upstream slope tilt, valley depth/width, gully density, roughness, and random seed—plus an **80-step asynchronous Hydraulic Pre-Erosion** button to carve natural drainage channels before running floods.
+
+### 3. 🪨 Per-Pixel Geotechnical Soil System & Differential Erosion
+* **Rock-to-Soil Ratio & Layering**: Adjust global **Soil Ratio (`0% – 100%`)**, **Topsoil Depth**, **Steep-Slope Bedrock Threshold**, and **Patchiness**, or pick from 3 geological strata presets (`强岩硬谷地层`, `黏性红壤切沟地层`, `湿陷黄土沟壑地层`).
+* **4 Geotechnical Soil Behaviors (`GeologyMapShader`)**: Generates a per-pixel `(subsidence, incision, cohesion, soilTypeId)` property map:
+  * **Collapsible Loess (`湿陷黄土`)**: 100% static when dry; once wetted, exhibits uneven hydro-compaction subsidence and bank slumping with scattered resistant calcic pockets.
+  * **Cohesive Red Clay (`黏性红壤`)**: High cohesion and high wet repose angle—walls stay intact without slumping while fast water incises sharp, deep gullies.
+  * **Alluvial Gravel (`砂砾冲积`)**: Coarse and resistant to collapse; flash floods carve wide, shallow braided gravel channels.
+  * **Composite Watershed (`复合流域`)**: Naturally zones valley bottoms as collapsible silt, mid-slopes as cohesive gully-cutting clay, and upper ridges as resistant gravel and bedrock.
+* **Dry-State Static Stability**: Dry terrain remains completely stationary with zero spontaneous melting or settling; deformation only triggers where water or surface wetness reaches the soil, controlled independently by **Bedrock Hardness**, **Soil Erodibility**, and **Wet Soil Slip**.
+
+### 4. 🌊 Mass-Conserving Virtual Pipe Shallow Water & Flash Floods
+* **Virtual Pipe Shallow-Water Solver**: Replaces non-conservative momentum exchange with a strictly mass-conserving 4-direction pipe flux solver (`waterFluxFragmentShader` + `waterUpdateFragmentShader`) supporting `1–4` substeps per frame and adjustable flow speed.
+* **Up to 24 Interactive Water Sources (`WaterSources` & `SourceMarkers`)**: Click directly on the 3D terrain to place, select, toggle, or delete persistent water sources (each with independent flow rate, radius, and `Continuous` vs. `Pulse` mode). Large maps (`>= 4×4`) automatically populate multi-branch upstream sources.
+* **One-Click Flash Flood Surge**: Releases a realistic hydrograph surge (1.5s rapid rise, 2.5s peak hold, 8s exponential recession) across all active or standby pulse sources simultaneously or individually.
+* **Global Rain & Local Storm Zone**: Adjust global rainfall intensity/speed or place and drag a **Local Storm Zone** (`局地暴雨`) directly on the terrain to concentrate both 3D rain particles (`RainParticles`) and intense surface runoff over a targeted catchment.
+* **Suspended Sediment & Spike-Free Shoreline Rendering**: Tracks suspended sediment concentration (`water.w`) and surface wetness (`heights.w`) for realistic muddy-tan floodwater and sandy foam vs. clear cyan streams. Samples only wet neighbor texels in `WaterDisplayShader` vertices to eliminate comb-like shoreline spikes, and supports **Open Boundary Outflow** vs. **Closed Basin**.
+
+### 5. 🧊 3D Geological Cross-Section, Diagnostic Geology View & Custom HUD
+* **3D Geological Skirt (`SkirtGeometry` & `SkirtShader`)**: Frames the terrain with a vertical cross-section wall showing bedrock strata and topsoil thickness tinted to match the active soil type.
+* **Aerial-DEM & Diagnostic Geology Views**: Toggle between realistic aerial-DEM shading (with directional sunlight, fresh gully wall exposure, damp slump darkening, and alluvial deposition) and a color-coded **Geology View (`地质视图`)** with a live legend.
+* **Custom Glassmorphic HUD & JSON Presets**: Features a top-left telemetry bar (mode hint, map area/resolution, FPS, active sources, flood countdown), a bottom quick-action dock, a collapsible 4-tab control panel (`Terrain`, `Geology`, `Sources & Rain`, `Physics & Scene`), and one-click **JSON config Export/Import**.
 
 ---
 
-## 🚀 快速开始
+## 🛠️ Tech Stack
 
-### 1. 克隆项目
+* **3D Engine & GPGPU**: [Three.js](https://threejs.org/) (WebGL / `RGBAFloat` RenderTargets)
+* **Build Tool**: [Vite 6.x](https://vitejs.dev/)
+* **Package Manager**: [pnpm](https://pnpm.io/)
+* **Shading Language**: GLSL (Multi-pass FBO simulation + Raymarching picking)
+* **UI**: Custom zero-dependency glassmorphic HUD (`HudController.js`)
+
+---
+
+## 🚀 Quick Start
+
 ```bash
+# 1. Clone the repository
 git clone https://github.com/feng62/craftscape-threejs.git
 cd craftscape-threejs
-```
 
-### 2. 安装依赖
-```bash
+# 2. Install dependencies
 pnpm install
-```
 
-### 3. 启动开发服务器
-```bash
+# 3. Start development server
 pnpm dev
-```
-在浏览器中打开 `http://localhost:5173` 即可开始体验！
 
-### 4. 构建生产版本
-```bash
+# 4. Build for production
 pnpm build
 ```
 
 ---
 
-## 🎮 操作指南
+## 🎮 Controls & Shortcuts
 
-| 操作 | 响应 |
+| Input / Action | Behavior |
 | :--- | :--- |
-| **鼠标左键拖拽 / 空格键** | 雕刻地形（增加/减少 岩石、土壤或水体） |
-| **鼠标右键拖拽 / 拖拽 (雕刻关闭时)** | 旋转场景视角 (OrbitControls) |
-| **鼠标滚轮** | 缩放视角远近 |
-| **GUI 笔刷半径** | 调节雕刻作用圈大小 |
-| **GUI 降雨强度 / 雨量** | 控制全图降雨速率与雨滴粒子密度 |
-| **GUI 水流速度** | 控制水流物理动量加速度与波纹漂移速率 |
-| **GUI 蒸发量 / 侵蚀量** | 调控水面蒸发快慢与急流切蚀山体强度 |
+| **Orbit Mode (`1`)** | Left-drag to rotate, right-drag to pan, scroll to zoom |
+| **Place Source Mode (`2`)** | Left-click terrain to add a water source or select an existing marker; right-drag to rotate |
+| **Local Storm Mode (`3`)** | Left-click or drag on terrain to move and activate the local storm center; right-drag to rotate |
+| **Sculpt Mode (`4`)** | Left-drag (or hold `Space` in any mode) to add/remove Rock, Soil, or Water; right-drag to rotate |
+| **`W / A / S / D / Q / E`** | Pan camera horizontally (`WASD`) and vertically (`Q/E`), scaled to map size |
+| **Bottom Dock Actions** | Trigger Flash Flood (`触发山洪`), Geology View (`地质视图`), Pause, Clear Water, Reset Terrain, Reset Camera |
 
 ---
 
-## 🏛️ 项目结构
+## 🏛️ Project Structure
 
 ```text
 craftscape-threejs/
-├── public/                  # 静态资源 (草地/岩石纹理贴图)
+├── public/
+│   ├── preview.png
+│   └── textures/                  # Grass & rock albedo/normal maps
 ├── src/
-│   ├── controls/            # 键盘与鼠标雕刻控制器 (SculptController.js)
-│   ├── effects/             # 3D 雨滴粒子系统 (RainParticles.js)
-│   ├── geometries/          # 六边形网格与平滑网格生成器 (HexGridGeometry, GridGeometry)
-│   ├── shaders/             # 着色器材质库
-│   │   ├── DisplayShader.js         # 山体地形物理渲染材质
-│   │   ├── WaterDisplayShader.js    # 水体白浪与水花物理材质
-│   │   ├── GodShader.js             # 3D Raymarching 雕刻 Pass
-│   │   ├── ErrodeShader.js          # 水文侵蚀 Pass
-│   │   ├── DiffuseSoilShader.js     # 土壤重力扩散 Pass
-│   │   ├── NormalShader.js          # 地形法线与环境光遮蔽 (AO) Pass
-│   │   └── WaterShaders.js          # 浅水物理平衡、动量、循环与流速 Pass
-│   ├── simulation/          # GPGPU 运算管线
-│   │   ├── GPGPUProcessor.js        # WebGLRenderTarget 双缓冲区封装
-│   │   ├── TerrainSim.js            # 地形物理解算器
-│   │   └── WaterSim.js              # 水体 5-Pass 物理解算器
-│   ├── style.css            # 应用全局与 GUI 响应式样式
-│   └── main.js              # 入口文件 (场景、渲染循环与 GUI 配置)
+│   ├── config/
+│   │   └── presets.js             # 6 landform presets, 4 soil types, 3 strata presets
+│   ├── controls/
+│   │   └── SculptController.js    # Mode switching, keyboard shortcuts & sculpting state
+│   ├── effects/
+│   │   ├── RainParticles.js       # 3D rain particle system (global & local storm zone)
+│   │   └── SourceMarkers.js       # 3D interactive water source & storm markers
+│   ├── geometries/
+│   │   ├── GridGeometry.js        # Indexed Uint32Array terrain/water mesh
+│   │   ├── HexGridGeometry.js     # Hexagonal column style geometry
+│   │   └── SkirtGeometry.js       # 3D sandbox perimeter cross-section geometry
+│   ├── shaders/
+│   │   ├── TerrainGenShader.js    # Multi-scale aerial-DEM terrain & 3x3 weathering pass
+│   │   ├── GeologyMapShader.js    # Per-pixel geotechnical property map generator
+│   │   ├── ErrodeShader.js        # Stream-power incision & bounded sediment transport
+│   │   ├── DiffuseSoilShader.js   # Dry-static soil slumping & wet hydro-compaction
+│   │   ├── GodShader.js           # 3D raymarching terrain sculpting pass
+│   │   ├── NormalShader.js        # World-scale terrain normals & ambient occlusion
+│   │   ├── WaterShaders.js        # Virtual Pipe flux, advection, sources & boundary passes
+│   │   ├── DisplayShader.js       # Aerial-DEM shading & diagnostic geology view
+│   │   ├── WaterDisplayShader.js  # Wet-texel shoreline sampling, mud & foam rendering
+│   │   └── SkirtShader.js         # Cross-section strata & soil thickness shader
+│   ├── simulation/
+│   │   ├── GPGPUProcessor.js      # WebGLRenderTarget offscreen compute wrapper
+│   │   ├── TerrainSim.js          # Terrain pipeline, 256x256 CPU cache & raycaster
+│   │   ├── WaterSim.js            # Substepped Virtual Pipe shallow-water solver
+│   │   └── WaterSources.js        # Multi-source manager & flash-flood hydrograph
+│   ├── ui/
+│   │   └── HudController.js       # 4-tab glassmorphic HUD, telemetry & JSON import/export
+│   ├── style.css                  # HUD & global dark-theme styles
+│   └── main.js                    # Scene setup, render loop & dynamic resolution scaling
 ├── index.html
 ├── package.json
 └── vite.config.js
@@ -134,13 +150,12 @@ craftscape-threejs/
 
 ---
 
-## 🙏 致谢与参考
+## 🙏 Acknowledgments
 
-* 感谢 **Florian Boesch** 原作者创作的 [craftscape](https://github.com/pyalot/craftscape) WebGL 经典项目。
-* 本项目在此基础上全面使用现代 **Three.js + Vite** 重构，并修复了高程拾取偏差、流速截断 Bug，扩展了天气与物理控制系统。
+* Inspired by and refactored from **Florian Boesch**'s classic WebGL project [pyalot/craftscape](https://github.com/pyalot/craftscape).
 
 ---
 
-## 📄 开源协议
+## 📄 License
 
-本项目基于 [AGPL-3.0 License](LICENSE) 协议开源。
+Licensed under the [AGPL-3.0 License](LICENSE).
